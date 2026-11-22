@@ -56,7 +56,7 @@ class Mote : Form
         shotTheme = a.Length > 3 && a[3] == "dark" ? 1 : 0;
         var f = new Mote(a[1]);
         f.StartPosition = FormStartPosition.Manual; f.ShowInTaskbar = false;
-        f.Bounds = new Rectangle(SystemInformation.VirtualScreen.Right + 200, 0, 932, 960);
+        f.Bounds = new Rectangle(SystemInformation.VirtualScreen.Right + 200, 0, a.Length > 4 ? int.Parse(a[4]) : 932, 960);
         var t = new Timer { Interval = 2500 };
         t.Tick += delegate
         {
@@ -221,14 +221,19 @@ class Mote : Form
         ShowHtml(lastBody, lastBase);
     }
 
+    const string SvgHead = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\">";
+    const string IconMenu = SvgHead + "<path d=\"M2.5 4h11M2.5 8h11M2.5 12h11\"/></svg>";
+    const string IconSun = SvgHead + "<circle cx=\"8\" cy=\"8\" r=\"3\"/><path d=\"M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1\"/></svg>";
+    const string IconMoon = SvgHead + "<path d=\"M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z\"/></svg>";
+
     void ShowHtml(string body, string baseDir)
     {
         lastBody = body; lastBase = baseDir;
         string baseTag = baseDir == null ? "" : "<base href=\"" + new Uri(baseDir.TrimEnd('\\') + "\\").AbsoluteUri + "\">";
         var heads = Regex.Matches(body, @"<h([1-3]) id=""([^""]*)"">(.*?)</h\1>");
         string bar = "<div id=\"bar\">" +
-            (heads.Count > 1 ? "<a href=\"mote:toc\" title=\"" + T("Contents", "\u0130\u00e7indekiler") + " (Ctrl+T)\">&#9776;</a>" : "") +
-            "<a href=\"mote:theme\" title=\"" + T("Theme", "Tema") + " (Ctrl+D)\">" + (dark ? "&#9788;" : "&#9790;") + "</a></div>";
+            (heads.Count > 1 ? "<a href=\"mote:toc\" title=\"" + T("Contents", "\u0130\u00e7indekiler") + " (Ctrl+T)\">" + IconMenu + "</a>" : "") +
+            "<a href=\"mote:theme\" title=\"" + T("Theme", "Tema") + " (Ctrl+D)\">" + (dark ? IconSun : IconMoon) + "</a></div>";
         var nav = new StringBuilder();
         if (toc && heads.Count > 1)
         {
@@ -321,20 +326,21 @@ class Mote : Form
 
     const string Css = @"
 html{background:#F0EEE6}
-body{margin:0;color:#3D3D3A;font:17px/1.7 Georgia,'Times New Roman',serif}
-article{max-width:780px;margin:32px auto;padding:44px 60px 56px;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:14px;box-shadow:0 1px 8px rgba(40,30,20,.05)}
+body{margin:0;padding:0 20px;color:#3D3D3A;font:17px/1.7 Georgia,'Times New Roman',serif}
+article{max-width:902px;margin:64px auto 40px;box-sizing:border-box;word-wrap:break-word;padding:44px 60px 56px;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:14px;box-shadow:0 1px 8px rgba(40,30,20,.05)}
 article>:first-child{margin-top:0}
+@media (max-width:700px){article{padding:28px 26px 36px}}
 h1,h2,h3,h4,h5,h6{margin:1.6em 0 .6em;line-height:1.3;color:#141413;font-family:'Segoe UI',Arial,sans-serif;font-weight:600}
-h1{font-size:2em;font-weight:700;letter-spacing:-.4px}
+h1{font-size:1.85em;font-weight:700;letter-spacing:-.3px}
 h2{font-size:1.45em;padding-bottom:.3em;border-bottom:1px solid #E8E6DC}
 h3{font-size:1.18em}
 p,ul,ol,table,pre,blockquote{margin:0 0 1.1em}
 li{margin:.25em 0}
 a{color:#C6613F;text-decoration:none;border-bottom:1px solid #EBCBBB} a:hover{border-bottom-color:#C6613F}
 strong{color:#141413}
-code{font:84% Consolas,monospace;background:#F0EEE6;color:#141413;padding:.15em .4em;border-radius:5px}
+code{word-wrap:break-word;font:84% Consolas,monospace;background:#F0EEE6;color:#141413;padding:.15em .4em;border-radius:5px}
 pre{background:#F5F4EE;color:#141413;border:1px solid #E8E6DC;padding:16px 20px;border-radius:10px;overflow:auto;line-height:1.55}
-pre code{background:none;color:inherit;padding:0;font-size:86%}
+pre code{background:none;color:inherit;padding:0;font-size:86%;word-wrap:normal}
 pre .c{color:#8A877D;font-style:italic} pre .s{color:#5B7F3A} pre .n{color:#B2552F} pre .k{color:#7553A8}
 .code{position:relative}
 .code .copy{display:none;position:absolute;top:8px;right:10px;font:12px 'Segoe UI',Arial;color:#73726C;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:6px;padding:2px 10px}
@@ -347,8 +353,9 @@ img{max-width:100%;border-radius:8px}
 hr{border:0;height:1px;background:#E8E6DC;margin:2.2em 0}
 li.task{list-style:none} li.task input{margin:0 .5em 0 -1.4em}
 ::selection{background:#F3D9CC}
-#bar{position:fixed;top:12px;right:18px;z-index:9}
-#bar a{display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-left:6px;border:1px solid #E8E6DC;border-radius:10px;background:#FAF9F5;color:#73726C;box-shadow:0 1px 4px rgba(40,30,20,.06);font:17px 'Segoe UI Symbol','Segoe UI'}
+#bar{position:fixed;top:14px;right:18px;z-index:9}
+#bar a{float:left;box-sizing:border-box;width:34px;height:34px;margin-left:6px;border:1px solid #E8E6DC;border-radius:10px;background:#FAF9F5;color:#73726C;box-shadow:0 1px 4px rgba(40,30,20,.06)}
+#bar svg{display:block;margin:8px}
 #bar a:hover{color:#C6613F}
 #toc{position:fixed;top:58px;right:18px;width:250px;max-height:75%;overflow:auto;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:12px;box-shadow:0 4px 18px rgba(40,30,20,.10);padding:12px 8px;font:14px/1.4 'Segoe UI',Arial,sans-serif;z-index:9}
 #toc b{display:block;padding:2px 10px 8px;font-size:12px;letter-spacing:1px;color:#8A877D}
