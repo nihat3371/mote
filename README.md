@@ -65,7 +65,7 @@ Kept small on purpose:
 
 ## Family
 
-Small, fast, calm Windows tools: Mote · [Glint](https://github.com/nihat3371/glint) (ask Claude about your screen) · [Lumen](https://github.com/nihat3371/lumen) (Claude limit meter).
+Small, fast, calm Windows tools: Mote · [Glint](https://github.com/nihat3371/glint) (ask Claude about your screen).
 
 ## License
 
