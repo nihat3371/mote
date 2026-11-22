@@ -63,6 +63,10 @@ Kept small on purpose:
 - Rendering uses the built-in Windows web control, so very exotic CSS/Markdown extensions (math, diagrams, footnotes) are not supported.
 - Windows only.
 
+## Family
+
+Mote is a sibling of [Glint](https://github.com/nihat3371/glint), which lets you ask Claude about whatever is on your screen. Small, fast, calm Windows tools.
+
 ## License
 
 [MIT](LICENSE)

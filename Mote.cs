@@ -39,8 +39,46 @@ class Mote : Form
     static void Main(string[] args)
     {
         Application.EnableVisualStyles();
+#if SHOT
+        // Test-only build (/define:SHOT): render a file off-screen into a PNG, never shown on the user's screen.
+        if (args.Length >= 3 && args[0] == "--shot") { Shot(args); return; }
+#endif
         Application.Run(new Mote(args.Length > 0 ? args[0] : null));
     }
+
+#if SHOT
+    static int shotTheme = -1;
+    [ComImport, Guid("0000010d-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IViewObject { [PreserveSig] int Draw(uint a, int l, IntPtr p, IntPtr t, IntPtr h1, IntPtr hdc, ref Rectangle r, IntPtr w, IntPtr c, int ca); }
+    protected override bool ShowWithoutActivation { get { return true; } }
+    static void Shot(string[] a)
+    {
+        shotTheme = a.Length > 3 && a[3] == "dark" ? 1 : 0;
+        var f = new Mote(a[1]);
+        f.StartPosition = FormStartPosition.Manual; f.ShowInTaskbar = false;
+        f.Bounds = new Rectangle(SystemInformation.VirtualScreen.Right + 200, 0, 932, 960);
+        var t = new Timer { Interval = 2500 };
+        t.Tick += delegate
+        {
+            t.Stop();
+            var sz = f.web.ClientSize;
+            using (var b = new Bitmap(sz.Width, sz.Height))
+            {
+                using (var g = Graphics.FromImage(b))
+                {
+                    IntPtr hdc = g.GetHdc();
+                    var r = new Rectangle(0, 0, sz.Width, sz.Height);
+                    ((IViewObject)f.web.Document.DomDocument).Draw(1, -1, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, hdc, ref r, IntPtr.Zero, IntPtr.Zero, 0);
+                    g.ReleaseHdc(hdc);
+                }
+                b.Save(a[2], System.Drawing.Imaging.ImageFormat.Png);
+            }
+            Environment.Exit(0); // skip SaveSettings
+        };
+        f.Shown += delegate { t.Start(); };
+        Application.Run(f);
+    }
+#endif
 
     Mote(string file)
     {
@@ -49,7 +87,10 @@ class Mote : Form
         StartPosition = FormStartPosition.CenterScreen;
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
         LoadSettings();
-        BackColor = dark ? Color.FromArgb(22, 24, 29) : Color.FromArgb(238, 240, 243);
+        #if SHOT
+        if (shotTheme >= 0) dark = shotTheme == 1;
+#endif
+        BackColor = dark ? Color.FromArgb(31, 30, 29) : Color.FromArgb(240, 238, 230);
 
         web = new WebBrowser();
         web.Dock = DockStyle.Fill;
@@ -207,7 +248,10 @@ class Mote : Form
     void ToggleTheme()
     {
         dark = !dark;
-        BackColor = dark ? Color.FromArgb(22, 24, 29) : Color.FromArgb(238, 240, 243);
+        #if SHOT
+        if (shotTheme >= 0) dark = shotTheme == 1;
+#endif
+        BackColor = dark ? Color.FromArgb(31, 30, 29) : Color.FromArgb(240, 238, 230);
         ApplyTitleBar();
         Width++; Width--;   // forces Win10 to repaint the title bar
         Redraw();
@@ -276,59 +320,60 @@ class Mote : Form
     }
 
     const string Css = @"
-html{background:#eef0f3}
-body{margin:0;color:#2b2f36;font:16px/1.75 'Segoe UI',Arial,sans-serif}
-article{max-width:800px;margin:32px auto;padding:44px 60px 56px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(20,30,50,.08)}
+html{background:#F0EEE6}
+body{margin:0;color:#3D3D3A;font:17px/1.7 Georgia,'Times New Roman',serif}
+article{max-width:780px;margin:32px auto;padding:44px 60px 56px;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:14px;box-shadow:0 1px 8px rgba(40,30,20,.05)}
 article>:first-child{margin-top:0}
-h1,h2,h3,h4,h5,h6{margin:1.6em 0 .6em;line-height:1.3;color:#14171c;font-weight:600}
-h1{font-size:2.1em;font-weight:700;letter-spacing:-.5px}
-h2{font-size:1.5em;padding-bottom:.3em;border-bottom:1px solid #e8eaee}
-h3{font-size:1.2em}
+h1,h2,h3,h4,h5,h6{margin:1.6em 0 .6em;line-height:1.3;color:#141413;font-family:'Segoe UI',Arial,sans-serif;font-weight:600}
+h1{font-size:2em;font-weight:700;letter-spacing:-.4px}
+h2{font-size:1.45em;padding-bottom:.3em;border-bottom:1px solid #E8E6DC}
+h3{font-size:1.18em}
 p,ul,ol,table,pre,blockquote{margin:0 0 1.1em}
 li{margin:.25em 0}
-a{color:#2f6fde;text-decoration:none;border-bottom:1px solid #c9dafa} a:hover{border-bottom-color:#2f6fde}
-strong{color:#14171c}
-code{font:86% Consolas,monospace;background:#f2f3f6;color:#c0396b;padding:.15em .4em;border-radius:5px}
-pre{background:#1f2430;color:#e4e7ee;padding:16px 20px;border-radius:10px;overflow:auto;line-height:1.55}
-pre code{background:none;color:inherit;padding:0;font-size:88%}
-pre .c{color:#7d879a;font-style:italic} pre .s{color:#a6d189} pre .n{color:#ef9f76} pre .k{color:#ca9ee6}
+a{color:#C6613F;text-decoration:none;border-bottom:1px solid #EBCBBB} a:hover{border-bottom-color:#C6613F}
+strong{color:#141413}
+code{font:84% Consolas,monospace;background:#F0EEE6;color:#141413;padding:.15em .4em;border-radius:5px}
+pre{background:#F5F4EE;color:#141413;border:1px solid #E8E6DC;padding:16px 20px;border-radius:10px;overflow:auto;line-height:1.55}
+pre code{background:none;color:inherit;padding:0;font-size:86%}
+pre .c{color:#8A877D;font-style:italic} pre .s{color:#5B7F3A} pre .n{color:#B2552F} pre .k{color:#7553A8}
 .code{position:relative}
-.code .copy{display:none;position:absolute;top:8px;right:10px;font:12px 'Segoe UI',Arial;color:#aab2c2;background:#2c3342;border:0;border-radius:6px;padding:3px 10px}
-.code:hover .copy{display:block} .code .copy:hover{color:#fff}
-blockquote{padding:.6em 1.2em;color:#555d6b;background:#f6f8fb;border-left:4px solid #8fb3f0;border-radius:0 8px 8px 0}
+.code .copy{display:none;position:absolute;top:8px;right:10px;font:12px 'Segoe UI',Arial;color:#73726C;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:6px;padding:2px 10px}
+.code:hover .copy{display:block} .code .copy:hover{color:#C6613F}
+blockquote{padding:.6em 1.2em;color:#5E5D59;background:#F5F4EE;border-left:3px solid #D97757;border-radius:0 8px 8px 0}
 blockquote>:last-child{margin-bottom:0}
-table{border-collapse:collapse;font-size:.95em}
-th,td{border:1px solid #e3e6eb;padding:8px 14px} th{background:#f4f6f9;font-weight:600} tr:nth-child(even) td{background:#fafbfc}
+table{border-collapse:collapse;font:.9em/1.5 'Segoe UI',Arial,sans-serif}
+th,td{border:1px solid #E8E6DC;padding:8px 14px} th{background:#F0EEE6;font-weight:600;color:#141413;text-align:left} tr:nth-child(even) td{background:#F7F6F1}
 img{max-width:100%;border-radius:8px}
-hr{border:0;height:1px;background:#e3e6eb;margin:2.2em 0}
+hr{border:0;height:1px;background:#E8E6DC;margin:2.2em 0}
 li.task{list-style:none} li.task input{margin:0 .5em 0 -1.4em}
-::selection{background:#cfe0fc}
+::selection{background:#F3D9CC}
 #bar{position:fixed;top:12px;right:18px;z-index:9}
-#bar a{display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-left:6px;border:0;border-radius:9px;background:#fff;color:#555d6b;box-shadow:0 1px 6px rgba(20,30,50,.14);font:17px 'Segoe UI Symbol','Segoe UI'}
-#bar a:hover{color:#2f6fde}
-#toc{position:fixed;top:58px;right:18px;width:250px;max-height:75%;overflow:auto;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(20,30,50,.16);padding:12px 8px;font-size:14px;line-height:1.4;z-index:9}
-#toc b{display:block;padding:2px 10px 8px;font-size:12px;letter-spacing:1px;color:#8a92a0}
-#toc a{display:block;padding:5px 10px;border:0;border-radius:6px;color:#3a404b}
-#toc a:hover{background:#f0f3f8;color:#2f6fde}
-#toc .l2{padding-left:22px} #toc .l3{padding-left:34px;font-size:13px;color:#6b7280}
-html.dark{background:#16181d;scrollbar-face-color:#3a3f4b;scrollbar-track-color:#16181d;scrollbar-arrow-color:#8a92a0;scrollbar-shadow-color:#3a3f4b;scrollbar-highlight-color:#3a3f4b;scrollbar-3dlight-color:#16181d;scrollbar-darkshadow-color:#16181d}
-.dark body{color:#c9ced8}
-.dark article{background:#1f2229;box-shadow:0 2px 14px rgba(0,0,0,.45)}
-.dark h1,.dark h2,.dark h3,.dark h4,.dark h5,.dark h6,.dark strong{color:#eef1f6}
-.dark h2{border-bottom-color:#2e333d}
-.dark a{color:#7aa7f5;border-bottom-color:#33456a} .dark a:hover{border-bottom-color:#7aa7f5}
-.dark code{background:#2a2e37;color:#f08db0}
-.dark pre{background:#15171c;box-shadow:inset 0 0 0 1px #2a2e37}
+#bar a{display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;margin-left:6px;border:1px solid #E8E6DC;border-radius:10px;background:#FAF9F5;color:#73726C;box-shadow:0 1px 4px rgba(40,30,20,.06);font:17px 'Segoe UI Symbol','Segoe UI'}
+#bar a:hover{color:#C6613F}
+#toc{position:fixed;top:58px;right:18px;width:250px;max-height:75%;overflow:auto;background:#FAF9F5;border:1px solid #E8E6DC;border-radius:12px;box-shadow:0 4px 18px rgba(40,30,20,.10);padding:12px 8px;font:14px/1.4 'Segoe UI',Arial,sans-serif;z-index:9}
+#toc b{display:block;padding:2px 10px 8px;font-size:12px;letter-spacing:1px;color:#8A877D}
+#toc a{display:block;padding:5px 10px;border:0;border-radius:6px;color:#3D3D3A}
+#toc a:hover{background:#F0EEE6;color:#C6613F}
+#toc .l2{padding-left:22px} #toc .l3{padding-left:34px;font-size:13px;color:#73726C}
+html{scrollbar-face-color:#D9D7CE;scrollbar-track-color:#F0EEE6;scrollbar-arrow-color:#8A877D;scrollbar-shadow-color:#D9D7CE;scrollbar-highlight-color:#D9D7CE;scrollbar-3dlight-color:#F0EEE6;scrollbar-darkshadow-color:#F0EEE6}
+html.dark{background:#1F1E1D;scrollbar-face-color:#3D3D3A;scrollbar-track-color:#1F1E1D;scrollbar-arrow-color:#9C9A92;scrollbar-shadow-color:#3D3D3A;scrollbar-highlight-color:#3D3D3A;scrollbar-3dlight-color:#1F1E1D;scrollbar-darkshadow-color:#1F1E1D}
+.dark body{color:#D9D7CE}
+.dark article{background:#262624;border-color:#3D3D3A;box-shadow:0 2px 14px rgba(0,0,0,.35)}
+.dark h1,.dark h2,.dark h3,.dark h4,.dark h5,.dark h6,.dark strong{color:#ECEBE4}
+.dark h2{border-bottom-color:#3D3D3A}
+.dark a{color:#E39A7E;border-bottom-color:#5A3F33} .dark a:hover{border-bottom-color:#E39A7E}
+.dark code{background:#30302E;color:#ECEBE4}
+.dark pre{background:#1F1E1D;color:#E4E2DA;border-color:#3D3D3A}
 .dark pre code{background:none;color:inherit}
-.dark blockquote{background:#252932;color:#a9b0bd;border-left-color:#4a6fb3}
-.dark th,.dark td{border-color:#323743} .dark th{background:#262a33} .dark tr:nth-child(even) td{background:#22252d}
-.dark hr{background:#2e333d}
-.dark ::selection{background:#34507f}
-.dark .code .copy{background:#2a2e37}
-.dark #bar a,.dark #toc{background:#262a33;color:#aab2c2;box-shadow:0 2px 12px rgba(0,0,0,.45)}
-.dark #bar a:hover{color:#7aa7f5}
-.dark #toc a{color:#c9ced8} .dark #toc a:hover{background:#2f3440;color:#7aa7f5} .dark #toc .l3{color:#8a92a0}
-";
+.dark pre .c{color:#8A877D} .dark pre .s{color:#A6C98A} .dark pre .n{color:#E39A7E} .dark pre .k{color:#C3A6E8}
+.dark blockquote{background:#30302E;color:#B8B6AD;border-left-color:#D97757}
+.dark th,.dark td{border-color:#3D3D3A} .dark th{background:#30302E;color:#ECEBE4} .dark tr:nth-child(even) td{background:#2B2B29}
+.dark hr{background:#3D3D3A}
+.dark ::selection{background:#5A3A2E}
+.dark .code .copy{background:#262624;border-color:#3D3D3A;color:#9C9A92}
+.dark #bar a,.dark #toc{background:#30302E;border-color:#3D3D3A;color:#B8B6AD;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.dark #bar a:hover{color:#E39A7E}
+.dark #toc a{color:#D9D7CE} .dark #toc a:hover{background:#3D3D3A;color:#E39A7E} .dark #toc .l3{color:#9C9A92}";
 }
 
 static class Md
