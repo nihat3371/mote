@@ -65,7 +65,7 @@ Kept small on purpose:
 
 ## Family
 
-Mote is a sibling of [Glint](https://github.com/nihat3371/glint), which lets you ask Claude about whatever is on your screen. Small, fast, calm Windows tools.
+Small, fast, calm Windows tools: Mote · [Glint](https://github.com/nihat3371/glint) (ask Claude about your screen) · [Lumen](https://github.com/nihat3371/lumen) (Claude limit meter).
 
 ## License
 
